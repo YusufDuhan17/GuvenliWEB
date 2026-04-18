@@ -402,9 +402,31 @@
 		}
 		.quiz-explanation strong { color: var(--navy); display: block; margin-bottom: 8px; font-size: 1.2rem; text-transform: uppercase;}
 		.quiz-explanation em { font-style: normal; font-weight: 800; color: var(--accent); display: block; margin-bottom: 8px; }
+		.quiz-explanation ul { margin: 14px 0 0; padding-left: 20px; }
+		.quiz-explanation li + li { margin-top: 10px; }
+		.quiz-analysis-label {
+			display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px;
+			padding: 6px 12px; border-radius: 999px; background: var(--chip); color: var(--navy);
+			font-size: 0.9rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+		}
+		.quiz-analysis-label.is-correct { background: var(--success-bg); color: var(--success-text); }
+		.quiz-analysis-label.is-wrong { background: var(--error-bg); color: var(--error-text); }
 		body.iphone-mode .quiz-option { cursor: default; }
 		body.iphone-mode .explanation-box { display: block !important; }
-		.quiz-toolbar { display: flex; justify-content: flex-end; margin: 0 0 24px; }
+		.quiz-toolbar { display: flex; align-items: stretch; justify-content: space-between; gap: 16px; margin: 0 0 24px; }
+		.quiz-summary {
+			flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 18px 20px;
+			background: linear-gradient(135deg, rgba(190, 24, 93, 0.08), rgba(15, 23, 42, 0.03));
+			border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-soft);
+		}
+		.quiz-summary strong { color: var(--navy); font-size: 1rem; }
+		.quiz-summary-stats { display: flex; flex-wrap: wrap; gap: 12px; }
+		.quiz-summary-chip {
+			display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px;
+			background: var(--card); border: 1px solid var(--line); color: var(--muted); font-weight: 700;
+		}
+		.quiz-summary-note { color: var(--muted); font-size: 0.96rem; line-height: 1.5; }
+		.quiz-toolbar-actions { display: flex; align-items: center; gap: 12px; }
 		.btn-reset-quiz {
 			background: transparent; border: 2px solid var(--accent); color: var(--accent);
 			padding: 12px 18px; border-radius: 14px; font-family: 'Fira Code', monospace;
@@ -587,8 +609,19 @@
 				<h1>Güvenli Web Uygulama Geliştirme</h1>
 				<p class="lead">Bu çalışma, güvenli web uygulama geliştirme başlıklarını teknik doğruluk, sınav hazırlığı ve profesyonel anlatım dengesiyle bir araya getirir. İçerik; temel kavramlar, OWASP çerçeveleri, senaryo bazlı sorular ve uygulama güvenliği pratiklerini düzenli bir yayın akışı içinde sunar.</p>
 				<div class="quiz-toolbar">
-					<button id="iphoneModeButton" class="btn-iphone-mode" type="button">Sunum modu</button>
-					<button id="resetQuizButton" class="btn-reset-quiz" type="button">Testleri sıfırla</button>
+					<div class="quiz-summary" aria-live="polite">
+						<strong>Interaktif Sinav Analizi</strong>
+						<div class="quiz-summary-stats">
+							<span class="quiz-summary-chip">Dogru: <span id="statCorrect">0</span></span>
+							<span class="quiz-summary-chip">Yanlis: <span id="statWrong">0</span></span>
+							<span class="quiz-summary-chip">Tamamlanan: <span id="statAnswered">0</span></span>
+						</div>
+						<div id="quizInsightText" class="quiz-summary-note">Her cevapta neden dogru ya da neden yanlis oldugunu aciklayan analiz burada ozetlenir.</div>
+					</div>
+					<div class="quiz-toolbar-actions">
+						<button id="iphoneModeButton" class="btn-iphone-mode" type="button">Sunum modu</button>
+						<button id="resetQuizButton" class="btn-reset-quiz" type="button">Testleri sıfırla</button>
+					</div>
 				</div>
 				
 				<!-- Flashcards Module -->
@@ -2089,8 +2122,25 @@ Clickjacking: Kullanıcının farkında olmadan görünmeyen veya örtülü aray
 			function updateDashboard() {
 				const statCorrect = document.getElementById('statCorrect');
 				const statWrong = document.getElementById('statWrong');
+				const statAnswered = document.getElementById('statAnswered');
+				const quizInsightText = document.getElementById('quizInsightText');
+				const answeredCount = appState.quizScore.answered.length;
+				const totalAttempts = appState.quizScore.correct + appState.quizScore.wrong;
+				const accuracy = totalAttempts ? Math.round((appState.quizScore.correct / totalAttempts) * 100) : 0;
 				if (statCorrect) statCorrect.textContent = appState.quizScore.correct;
 				if (statWrong) statWrong.textContent = appState.quizScore.wrong;
+				if (statAnswered) statAnswered.textContent = answeredCount;
+				if (quizInsightText) {
+					if (!answeredCount) {
+						quizInsightText.textContent = 'Her cevapta neden dogru ya da neden yanlis oldugunu aciklayan analiz burada ozetlenir.';
+					} else if (appState.quizScore.wrong > appState.quizScore.correct) {
+						quizInsightText.textContent = `Su an dogruluk oranin %${accuracy}. Yanlis sayin daha yuksek; analiz kutularindaki "Nerede takildin" bolumune donup sorudaki belirleyici ipucunu tekrar ayir.`;
+					} else if (appState.quizScore.wrong > 0) {
+						quizInsightText.textContent = `Su an dogruluk oranin %${accuracy}. Genel tablo iyi; yine de yanlis yaptigin sorularda kavram ile kontrolu neden karistirdigini not ederek pekistir.`;
+					} else {
+						quizInsightText.textContent = `Su an dogruluk oranin %${accuracy}. Cevaplar temiz; ayni tempoyu korumak icin aciklama panellerindeki mantigi tekrar ederek ilerle.`;
+					}
+				}
 			}
 			updateDashboard();
 
@@ -2697,6 +2747,40 @@ Clickjacking: Kullanıcının farkında olmadan görünmeyen veya örtülü aray
 
 			sections.forEach((_, index) => renderNoteDisplay('sec-' + index));
 
+			function getQuizOptionText(container, letter) {
+				const option = Array.from(container.querySelectorAll('.quiz-option')).find(item => item.dataset.letter === letter);
+				return option ? option.textContent.trim() : `${letter})`;
+			}
+
+			function createQuizAnalysisMarkup(container, selectedLetter, correctLetter, explanation, isCorrect) {
+				const selectedText = getQuizOptionText(container, selectedLetter);
+				const correctText = getQuizOptionText(container, correctLetter);
+				const analysisLabelClass = isCorrect ? 'is-correct' : 'is-wrong';
+				const analysisLabelText = isCorrect ? 'Dogru Mantik' : 'Hata Analizi';
+				const summaryTitle = isCorrect
+					? 'Dogru secimi yaptin.'
+					: 'Cevabi degil, mantigi kacirdigin noktayi gosteriyorum.';
+				const bullets = isCorrect
+					? [
+						`Senin secimin: <strong>${escapeHtml(selectedText)}</strong>`,
+						`Neden dogru: ${escapeHtml(explanation)}`,
+						'Sinav ipucu: Aynı kalıpta bir soruda önce riskin tipi değil, kontrolün hangi güvenlik mantığını doğruladığını ayır.'
+					]
+					: [
+						`Senin secimin: <strong>${escapeHtml(selectedText)}</strong>`,
+						`Dogru cevap: <strong>${escapeHtml(correctText)}</strong>`,
+						`Nerede takildin: ${escapeHtml(explanation)}`,
+						'Sinav ipucu: Sorudaki belirleyici kelimeyi önce kategorize et; sonra seçenekleri o ipucunu gerçekten karşılayıp karşılamadığına göre ele.'
+					];
+
+				return `
+					<div class="quiz-analysis-label ${analysisLabelClass}">${analysisLabelText}</div>
+					<em>${summaryTitle}</em>
+					<strong>Kisa Degerlendirme</strong>
+					<ul>${bullets.map(item => `<li>${item}</li>`).join('')}</ul>
+				`;
+			}
+
 			function revealAllInteractiveContent() {
 				document.body.classList.add('iphone-mode');
 
@@ -2733,7 +2817,7 @@ Clickjacking: Kullanıcının farkında olmadan görünmeyen veya örtülü aray
 							const expBox = document.createElement('div');
 							expBox.className = 'quiz-explanation';
 							expBox.dataset.iphoneGenerated = 'true';
-							expBox.innerHTML = `<em>Doğru cevap: ${correctLtr}</em><strong>Neden?</strong> ${explanation}`;
+							expBox.innerHTML = createQuizAnalysisMarkup(container, correctLtr, correctLtr, explanation, true);
 							container.appendChild(expBox);
 						}
 					}
@@ -2808,7 +2892,7 @@ Clickjacking: Kullanıcının farkında olmadan görünmeyen veya örtülü aray
 				if (!container.querySelector('.quiz-explanation')) {
 					const expBox = document.createElement('div');
 					expBox.className = 'quiz-explanation';
-					expBox.innerHTML = `<strong>Neden?</strong> ${explanation}`;
+						expBox.innerHTML = createQuizAnalysisMarkup(container, opt.dataset.letter, correctLtr, explanation, isCorrect);
 					container.appendChild(expBox);
 				}
 			});
